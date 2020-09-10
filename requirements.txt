@@ -1,0 +1,4 @@
+colorama
+argparse
+pycryptodome
+pyscreenshot
