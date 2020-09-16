@@ -5,15 +5,12 @@
 # github.com/LimerBoy/NukeShell
 
 # Import modules
-from sys import exit
 from os import path
 from time import sleep
 from colorama import Fore
-from threading import Thread
+from Core.server import ServerListen
 from Core.cli import Clear, ParseArgs, Banner
-from Core.clients import Client, ConnectedClients
-from socket import socket, \
-    AF_INET, SOCK_STREAM, SO_REUSEADDR, SOL_SOCKET, SHUT_RDWR
+from Core.clients import Client, ClientsManager
 
 # Parse arguments
 print(Banner)
@@ -23,57 +20,19 @@ args = ParseArgs()
 SERVER_HOST = args.host
 SERVER_PORT = args.port
 
-# Create socket
-server = socket(
-    AF_INET,
-    SOCK_STREAM
-)
-# Settings
-server.settimeout(50)
-server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-# Bind socket
-server.bind((SERVER_HOST, SERVER_PORT))
-server.listen(5)
-print(f"{Fore.GREEN}[Server]{Fore.WHITE} Listening at {SERVER_HOST}:{SERVER_PORT} ...{Fore.RESET}")
+# Init TCP server
+server = ServerListen(SERVER_HOST, SERVER_PORT)
 
-
-# Stop server
-def StopServer():
-    clients = len(ConnectedClients)
-    print(f"\n{Fore.RED}[Server]{Fore.WHITE} Disconnecting {clients} clients ...")
-    # Disconnect all clients
-    for client in ConnectedClients:
-        Thread(target=client.Disconnect).start()
-    # Wait for all clients disconnection
-    #while len(ConnectedClients) != 0:
-    #    print(len(ConnectedClients))
-    #    sleep(0.2)
-    sleep(clients / 2)
-    # Stop tcp server
-    print(f"{Fore.RED}[Server]{Fore.WHITE} Stopping server ...")
-    server.shutdown(SHUT_RDWR)
-    server.close()
-    exit(1)
-
-# Accept all connections
-def AcceptClients():
-    while True:
-        # Client connected
-        try:
-            Client(*server.accept())
-        except OSError:
-            return
-Thread(target=AcceptClients).start()
-
-# Clients manager
 while True:
     # Lock while no clients connected
     print(f"{Fore.GREEN}[Server]{Fore.WHITE} Waiting for connections ...{Fore.RESET}")
+    ConnectedClients = []
     while len(ConnectedClients) <= 0:
+        ConnectedClients = ClientsManager.GetConnectedClients()
         try:
             sleep(0.2)
         except KeyboardInterrupt:
-            StopServer()
+            server.StopServer()
     # Print all connected clients
     for i, client in enumerate(ConnectedClients):
         print("{}[Client {}] {}{}:{}{}".format(Fore.LIGHTYELLOW_EX, i+1, Fore.WHITE, *client.address, Fore.RESET))
@@ -102,7 +61,7 @@ while True:
         continue
     except KeyboardInterrupt:
         # Disconnect all clients from server
-        StopServer()
+        server.StopServer()
     except Exception as error:
         print(f"{Fore.RED}[Server]{Fore.WHITE} An error occurred\n", error)
         continue

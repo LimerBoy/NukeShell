@@ -9,15 +9,16 @@ from os import path
 from json import loads
 from time import sleep
 from colorama import Fore
-from binascii import hexlify
 from zlib import compress, decompress
 from Core.encryption import RSACipher, AESCipher
 
 aes = AESCipher()
 rsa = RSACipher()
 BUFFER_SIZE = 1024 * 20
-ConnectedClients = []
 
+
+# client manager
+global ClientManager, ClientsManager
 
 class Client:
     """ Connected client object """
@@ -34,7 +35,7 @@ class Client:
             # Get user info
             self.GetClientInfo()
             # Add this client to list
-            ConnectedClients.append(self)
+            ClientsManager.Append(self)
 
     """ Send encrypted command from client """
     def Send(self, data: str) -> None:
@@ -44,9 +45,13 @@ class Client:
 
     """ Get encrypted data from client """
     def Read(self) -> str:
-        encrypted = self.socket.recv(BUFFER_SIZE)
-        decrypted = aes.Decrypt(encrypted)
-        return decrypted.decode("utf8")
+        while True:
+            encrypted = self.socket.recv(BUFFER_SIZE)
+            if not encrypted:
+                sleep(1)
+                continue
+            decrypted = aes.Decrypt(encrypted)
+            return decrypted.decode("utf8")
 
     """ Run shell command """
     def Shell(self, command: str) -> str:
@@ -56,7 +61,7 @@ class Client:
     """ Disconnect client """
     def Disconnect(self):
         print(f"{Fore.RED}[Server]{Fore.WHITE} Closing connection with:", *self.address, Fore.RESET)
-        ConnectedClients.remove(self)
+        ClientsManager.Remove(self)
         self.Send("exit")
         self.socket.close()
 
@@ -144,3 +149,25 @@ class Client:
         #      + hexlify(aes.key).decode() + Fore.RESET)
 
 
+class ClientManager:
+    """ Connected clients object """
+
+    def __init__(self):
+        self.clients = []
+
+    def Append(self, client: Client):
+        self.clients.append(client)
+
+    def Remove(self, client: Client):
+        self.clients.remove(client)
+
+    def GetConnectedClients(self):
+        connected = []
+        for client in self.clients:
+            if client.socket.fileno() != -1:
+                connected.append(client)
+        return connected
+
+
+
+ClientsManager = ClientManager()

@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 def ParseArgs():
     parser = ArgumentParser(description="NukeShell server arguments")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Listen IP")
-    parser.add_argument("--port", type=int, default=5010, help="Listen port")
+    parser.add_argument("--port", type=int, default=5125, help="Listen port")
     return parser.parse_args()
 
 # Clear terminal window
